@@ -23,6 +23,7 @@ import {
 import { ForestArt, Icon, MushroomArt, Sprout } from "./art";
 
 const STORAGE_KEY = "buscabolets-v1";
+const WELCOME_KEY = "buscabolets-welcome-v1";
 type Panel =
   | "guide"
   | "collection"
@@ -32,15 +33,28 @@ type Panel =
   | "reward"
   | "ended"
   | null;
-type State = { save: Save; ready: boolean; storageOk: boolean };
+type State = {
+  save: Save;
+  ready: boolean;
+  storageOk: boolean;
+  welcome: boolean;
+};
 type Event =
-  | { kind: "load"; save: Save; storageOk: boolean }
+  | { kind: "load"; save: Save; storageOk: boolean; welcome: boolean }
+  | { kind: "dismiss-welcome" }
   | { kind: "action"; action: Action }
   | { kind: "storage-error" };
 function reducer(state: State, event: Event): State {
   switch (event.kind) {
     case "load":
-      return { save: event.save, ready: true, storageOk: event.storageOk };
+      return {
+        save: event.save,
+        ready: true,
+        storageOk: event.storageOk,
+        welcome: event.welcome,
+      };
+    case "dismiss-welcome":
+      return { ...state, welcome: false };
     case "action":
       return { ...state, save: transition(state.save, event.action) };
     case "storage-error":
@@ -54,10 +68,12 @@ function Dialog({
   children,
   onClose,
   title,
+  className = "",
 }: {
   children: React.ReactNode;
   onClose: () => void;
   title: string;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -66,7 +82,7 @@ function Dialog({
   return (
     <dialog
       ref={ref}
-      className="dialog"
+      className={`dialog ${className}`}
       onCancel={onClose}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -113,6 +129,7 @@ export default function Game() {
     save: initialSave(),
     ready: false,
     storageOk: true,
+    welcome: false,
   });
   const [tool, setTool] = useState<Tool>("pick");
   const [panel, setPanel] = useState<Panel>(null);
@@ -123,18 +140,20 @@ export default function Game() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
+      const restored = saved ? parseSave(saved) : null;
+      const welcome = !restored && localStorage.getItem(WELCOME_KEY) !== "seen";
       dispatch({
         kind: "load",
-        save: saved
-          ? (parseSave(saved) ?? initialSave(makeSeed()))
-          : initialSave(makeSeed()),
+        save: restored ?? initialSave(makeSeed()),
         storageOk: true,
+        welcome,
       });
     } catch {
       dispatch({
         kind: "load",
         save: initialSave(makeSeed()),
         storageOk: false,
+        welcome: true,
       });
     }
     if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
@@ -153,6 +172,14 @@ export default function Game() {
       dispatch({ kind: "storage-error" });
     }
   }, [state.save, state.ready, state.storageOk]);
+  const dismissWelcome = () => {
+    try {
+      localStorage.setItem(WELCOME_KEY, "seen");
+    } catch {
+      // The introduction can still be dismissed when storage is unavailable.
+    }
+    dispatch({ kind: "dismiss-welcome" });
+  };
   const act = (action: Action) => {
     // Never apply a move to the placeholder run before restoring browser storage.
     if (!state.ready) return;
@@ -232,41 +259,13 @@ export default function Game() {
         </button>
       </header>
       <main>
-        <section className="hero">
-          <div className="hero-copy">
-            <div className="eyebrow">
-              <span /> EL BOSC T’ESPERA
-            </div>
-            <h1>
-              Un pas. Una pista.
-              <br />
-              Un cistell per omplir.
-            </h1>
-            <p>
-              Endinsa’t al bosc, segueix les pistes i troba tots els bolets.
-              <br className="desktop-break" /> Cada excursió és una nova
-              aventura.
-            </p>
-            <div className="hero-caption">
-              <Icon name="leaf" size={15} />
-              <span>Sense presses. Però vigila els torns.</span>
-            </div>
-          </div>
-          <ForestArt />
-          <span className="hero-stamp">
-            Collir, explorar,
-            <br />
-            <b>tornar-hi.</b>
-            <span>✳</span>
-          </span>
-        </section>
         <div className="game-heading">
           <div className="section-heading">
             <span className="mini-icon">
               <Icon name="compass" />
             </span>
             <div>
-              <h2>La teva excursió</h2>
+              <h1>La teva excursió</h1>
               <p>Un racó de bosc ple de possibilitats.</p>
             </div>
           </div>
@@ -359,138 +358,123 @@ export default function Game() {
               />
             </div>
             <div className={`board-surround tool-${tool}`}>
-              <div className="column-labels" aria-hidden="true">
-                {"ABCDEFGHIJ".split("").map((letter) => (
-                  <span key={letter}>{letter}</span>
-                ))}
-              </div>
-              <div className="numbered-board">
-                <div className="row-labels" aria-hidden="true">
-                  {Array.from({ length: 10 }, (_, i) => (
-                    <span key={i}>{i + 1}</span>
-                  ))}
-                </div>
-                <div
-                  className="board-grid"
-                  ref={boardRef}
-                  aria-label="Bosc de 10 per 10 caselles"
-                  aria-busy={!state.ready}
-                >
-                  {Array.from({ length: 100 }, (_, index) => {
-                    const revealed = run.revealed.includes(index);
-                    const flagged = run.flags.includes(index);
-                    const mushroom = mushroomAt(run, index);
-                    const collected = mushroom && isCollected(mushroom);
-                    const taps = tapsRemaining(run, index);
-                    const needsPicking =
-                      run.phase === "playing" &&
-                      revealed &&
-                      mushroom &&
-                      SPECIES[mushroom.species].strength > 1 &&
-                      taps > 0;
-                    const endReveal = run.phase === "ended" && mushroom;
-                    const number = revealed && !mushroom ? clue(run, index) : 0;
-                    const coordinate = `${String.fromCharCode(65 + (index % 10))}${Math.floor(index / 10) + 1}`;
-                    const description = flagged
-                      ? "marcada"
-                      : revealed || endReveal
-                        ? mushroom
-                          ? `${SPECIES[mushroom.species].name}, ${collected ? "collit" : taps > 0 ? `encara ${taps} ${taps === 1 ? "toc" : "tocs"} per collir, 1 torn per toc` : "meitat collida, falta la parella"}`
-                          : number
-                            ? `${number} caselles amb bolets a prop`
-                            : "buida"
-                        : "per explorar";
-                    return (
-                      <button
-                        key={index}
-                        tabIndex={focusTile === index ? 0 : -1}
-                        onFocus={() => setFocusTile(index)}
-                        aria-disabled={!state.ready || run.phase !== "playing"}
-                        aria-label={`${coordinate}, ${description}`}
-                        aria-describedby={
-                          needsPicking ? "picking-help" : undefined
+              <div
+                className="board-grid"
+                ref={boardRef}
+                aria-label="Bosc de 10 per 10 caselles"
+                aria-busy={!state.ready}
+              >
+                {Array.from({ length: 100 }, (_, index) => {
+                  const revealed = run.revealed.includes(index);
+                  const flagged = run.flags.includes(index);
+                  const mushroom = mushroomAt(run, index);
+                  const collected = mushroom && isCollected(mushroom);
+                  const taps = tapsRemaining(run, index);
+                  const needsPicking =
+                    run.phase === "playing" &&
+                    revealed &&
+                    mushroom &&
+                    SPECIES[mushroom.species].strength > 1 &&
+                    taps > 0;
+                  const endReveal = run.phase === "ended" && mushroom;
+                  const number = revealed && !mushroom ? clue(run, index) : 0;
+                  const coordinate = `${String.fromCharCode(65 + (index % 10))}${Math.floor(index / 10) + 1}`;
+                  const description = flagged
+                    ? "marcada"
+                    : revealed || endReveal
+                      ? mushroom
+                        ? `${SPECIES[mushroom.species].name}, ${collected ? "collit" : taps > 0 ? `encara ${taps} ${taps === 1 ? "toc" : "tocs"} per collir, 1 torn per toc` : "meitat collida, falta la parella"}`
+                        : number
+                          ? `${number} caselles amb bolets a prop`
+                          : "buida"
+                      : "per explorar";
+                  return (
+                    <button
+                      key={index}
+                      tabIndex={focusTile === index ? 0 : -1}
+                      onFocus={() => setFocusTile(index)}
+                      aria-disabled={!state.ready || run.phase !== "playing"}
+                      aria-label={`${coordinate}, ${description}`}
+                      aria-describedby={
+                        needsPicking ? "picking-help" : undefined
+                      }
+                      title={
+                        needsPicking
+                          ? `${SPECIES[mushroom.species].name}: ${taps} ${taps === 1 ? "toc més" : "tocs més"} per collir-lo`
+                          : undefined
+                      }
+                      className={`tile ${revealed ? "revealed" : "covered"} ${collected ? "collected" : ""} ${needsPicking ? "needs-picking" : ""} ${endReveal && !revealed ? "missed" : ""} ${flagged ? "flagged" : ""} ${index === run.lastTile && run.used > 0 ? "last-tile" : ""}`}
+                      onClick={() => {
+                        act({ type: "tile", index, tool });
+                        if (tool === "rake") setTool("pick");
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        act({ type: "tile", index, tool: "flag" });
+                      }}
+                      onKeyDown={(e) => {
+                        const offsets: Record<string, number> = {
+                          ArrowLeft: -1,
+                          ArrowRight: 1,
+                          ArrowUp: -10,
+                          ArrowDown: 10,
+                        };
+                        const offset = offsets[e.key];
+                        if (offset !== undefined) {
+                          e.preventDefault();
+                          const next = Math.max(
+                            0,
+                            Math.min(99, index + offset),
+                          );
+                          boardRef.current
+                            ?.querySelectorAll("button")
+                            [next]?.focus();
                         }
-                        title={
-                          needsPicking
-                            ? `${SPECIES[mushroom.species].name}: ${taps} ${taps === 1 ? "toc més" : "tocs més"} per collir-lo`
-                            : undefined
-                        }
-                        className={`tile ${revealed ? "revealed" : "covered"} ${collected ? "collected" : ""} ${needsPicking ? "needs-picking" : ""} ${endReveal && !revealed ? "missed" : ""} ${flagged ? "flagged" : ""} ${index === run.lastTile && run.used > 0 ? "last-tile" : ""}`}
-                        onClick={() => {
-                          act({ type: "tile", index, tool });
-                          if (tool === "rake") setTool("pick");
-                        }}
-                        onContextMenu={(e) => {
+                        if (e.key.toLowerCase() === "f") {
                           e.preventDefault();
                           act({ type: "tile", index, tool: "flag" });
-                        }}
-                        onKeyDown={(e) => {
-                          const offsets: Record<string, number> = {
-                            ArrowLeft: -1,
-                            ArrowRight: 1,
-                            ArrowUp: -10,
-                            ArrowDown: 10,
-                          };
-                          const offset = offsets[e.key];
-                          if (offset !== undefined) {
-                            e.preventDefault();
-                            const next = Math.max(
-                              0,
-                              Math.min(99, index + offset),
-                            );
-                            boardRef.current
-                              ?.querySelectorAll("button")
-                              [next]?.focus();
-                          }
-                          if (e.key.toLowerCase() === "f") {
-                            e.preventDefault();
-                            act({ type: "tile", index, tool: "flag" });
-                          }
-                        }}
-                      >
-                        {(revealed || endReveal) && mushroom ? (
-                          <>
-                            <MushroomArt
-                              color={SPECIES[mushroom.species].color}
-                              size={30}
-                            />
-                            {needsPicking && (
-                              <span
-                                className="picking-badge"
-                                aria-hidden="true"
-                              >
-                                <Icon name="hand" size={11} />
-                                <span>×{taps}</span>
-                              </span>
-                            )}
-                            {mushroom.species === "rossinyol" && (
-                              <span className="pair-mark">
-                                {mushroom.tiles[0] === index ? "1" : "2"}
-                              </span>
-                            )}
-                            {collected && (
-                              <span className="collected-check">✓</span>
-                            )}
-                          </>
-                        ) : flagged ? (
-                          <Icon name="flag" size={21} />
-                        ) : revealed ? (
-                          number > 0 ? (
-                            <span className={`clue clue-${number}`}>
-                              {number}
+                        }
+                      }}
+                    >
+                      {(revealed || endReveal) && mushroom ? (
+                        <>
+                          <MushroomArt
+                            color={SPECIES[mushroom.species].color}
+                            size={30}
+                          />
+                          {needsPicking && (
+                            <span className="picking-badge" aria-hidden="true">
+                              <Icon name="hand" size={11} />
+                              <span>×{taps}</span>
                             </span>
-                          ) : (
-                            <span className="empty-dot" />
-                          )
-                        ) : index % 7 === 0 || index % 13 === 0 ? (
-                          <Sprout variant={index % 3} />
+                          )}
+                          {mushroom.species === "rossinyol" && (
+                            <span className="pair-mark">
+                              {mushroom.tiles[0] === index ? "1" : "2"}
+                            </span>
+                          )}
+                          {collected && (
+                            <span className="collected-check">✓</span>
+                          )}
+                        </>
+                      ) : flagged ? (
+                        <Icon name="flag" size={21} />
+                      ) : revealed ? (
+                        number > 0 ? (
+                          <span className={`clue clue-${number}`}>
+                            {number}
+                          </span>
                         ) : (
-                          <span className="tile-speck" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                          <span className="empty-dot" />
+                        )
+                      ) : index % 7 === 0 || index % 13 === 0 ? (
+                        <Sprout variant={index % 3} />
+                      ) : (
+                        <span className="tile-speck" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div className="board-tools">
@@ -767,6 +751,48 @@ export default function Game() {
           <span className="language">CAT</span>
         </span>
       </footer>
+      {state.welcome && (
+        <Dialog
+          title="Benvingut a Buscabolets"
+          className="welcome-dialog"
+          onClose={dismissWelcome}
+        >
+          <div className="welcome-art" aria-hidden="true">
+            <ForestArt />
+            <span className="welcome-caption">El bosc t’espera.</span>
+          </div>
+          <div className="welcome-copy">
+            <div className="eyebrow">UNA PETITA AVENTURA AL BOSC</div>
+            <h2>
+              Un pas. Una pista.
+              <br />
+              Un cistell per omplir.
+            </h2>
+            <p>
+              Endinsa’t al bosc i troba tots els bolets abans d’esgotar els
+              torns. Cada excursió és una nova aventura.
+            </p>
+            <ol className="guide-steps">
+              <li>
+                <strong>Explora i segueix les pistes.</strong> Toca una casella.
+                Els números indiquen quantes de les 8 caselles del voltant tenen
+                bolets.
+              </li>
+              <li>
+                <strong>Omple el cistell i avança.</strong> Cada toc de collita
+                costa un torn. Troba tots els bolets per passar de nivell i
+                triar un talent.
+              </li>
+            </ol>
+            <button className="primary-button" onClick={dismissWelcome}>
+              Cap al bosc <Icon name="arrow" size={18} />
+            </button>
+            <p className="welcome-help">
+              Tens la guia a «Com s’hi juga» sempre que et calgui.
+            </p>
+          </div>
+        </Dialog>
+      )}
       {panel && (
         <Dialog title={panelTitle} onClose={() => setPanel(null)}>
           {panel === "guide" && (

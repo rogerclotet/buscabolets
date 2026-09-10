@@ -10,6 +10,7 @@ async function seed(page: import("@playwright/test").Page, save: Save) {
 }
 test("Catalan game, tools, persistence, and accessible dialogs", async ({
   page,
+  isMobile,
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -18,7 +19,21 @@ test("Catalan game, tools, persistence, and accessible dialogs", async ({
   await expect(
     page.getByRole("heading", { name: /Un pas\. Una pista\./ }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("dialog", { name: "Benvingut a Buscabolets" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Cap al bosc" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "La teva excursió", level: 1 }),
+  ).toBeVisible();
   await expect(page.locator(".tile")).toHaveCount(100);
+  if (isMobile) {
+    await expect(page.locator(".tile").last()).toBeInViewport({ ratio: 1 });
+    await expect(
+      page.getByRole("button", { name: "Marca", exact: true }),
+    ).toBeInViewport({ ratio: 1 });
+  }
   await page.getByRole("button", { name: "Marca", exact: true }).click();
   await page
     .getByRole("button", { name: "A1, per explorar", exact: true })
@@ -28,6 +43,7 @@ test("Catalan game, tools, persistence, and accessible dialogs", async ({
   ).toBeVisible();
   await expect(page.getByRole("meter")).toHaveAttribute("aria-valuenow", "45");
   await page.reload();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "A1, marcada", exact: true }),
   ).toBeVisible();
@@ -108,6 +124,7 @@ test("production PWA installs its cache and reloads offline", async ({
   context,
 }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "Cap al bosc" }).click();
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
