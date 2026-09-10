@@ -1,0 +1,32 @@
+name: buscabolets-dev
+services:
+  app:
+    build:
+      context: .
+      target: development
+    ports:
+      - "127.0.0.1:${DEV_PORT:-3000}:3000"
+    init: true
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+        - action: sync
+          path: ./public
+          target: /app/public
+        - action: sync+restart
+          path: ./next.config.ts
+          target: /app/next.config.ts
+        - action: sync+restart
+          path: ./tsconfig.json
+          target: /app/tsconfig.json
+        - action: sync+restart
+          path: ./postcss.config.mjs
+          target: /app/postcss.config.mjs
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./pnpm-lock.yaml
+        - action: rebuild
+          path: ./pnpm-workspace.yaml
