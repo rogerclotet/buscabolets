@@ -122,12 +122,12 @@ bash scripts/deploy.sh
 
 ## Game rules
 
-- Every level has a 10×10 board. Level 1 has 8 mushrooms and 45 turns. Mushroom count rises to 22; the base turn budget falls to a minimum of 30.
+- Every level has a 10×10 board. Level 1 has 8 mushrooms and 32 turns. Level 2 has 31 turns; from level 3 the base budget is 30. Mushroom count rises to 22. Each stamina upgrade adds 2 turns, up to 10 extra turns.
 - Picking a tile costs one turn. Connected empty areas open automatically at no additional cost.
 - A number counts occupied mushroom tiles in the eight adjacent tiles. Clues stay unchanged after collection. If both halves of a two-tile mushroom are adjacent, they contribute 2 to the clue.
 - Rovellons take 1 picking power and award 10 points. Ceps need 3 accumulated power and award 25 points. Revealed ceps that need more taps have a purple tile and a hand badge showing the exact taps remaining for the current picking power. Each tap costs one turn. Rossinyols span two horizontally adjacent tiles, both of which must be picked, and award 30 points for the pair.
 - Flags are free. They protect marked tiles from picking and automatic reveals. Use the tool switch, right click, or F. Arrow keys move through the board; Enter or Space picks a tile.
-- The starter kit includes 1 picking power, one three-tile rake use, and one free directional hint per level. Hints point from the last picked tile, or E5 before the first pick, toward the nearest unfinished mushroom part.
+- The starter kit includes 1 picking power, one three-tile rake use, and one free directional hint per level. Press Olfacte boletaire to show a hint from the last picked tile, or E5 before the first pick. Hints prioritize the nearest hidden mushroom part, falling back to unfinished revealed parts when none remain hidden. Each compass upgrade adds one hint per level. Repeating an unchanged hint costs no charge, and using a hint switches back to the explore tool so its message is visible.
 - Beating a level offers up to three randomly selected talents that are not yet maxed out. Choose one before entering the next level. Talents improve picking power, rake charges, hint charges, the turn budget, or free empty reveals when collecting.
 - Each talent caps at level 5. Once all talents are maxed, the run can continue without another upgrade. Rake and hint charges refill every level.
 - Collecting the final mushroom on the final turn wins the level. Otherwise, zero turns ends the run and reveals the remaining mushrooms.

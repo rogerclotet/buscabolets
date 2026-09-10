@@ -8,6 +8,28 @@ async function seed(page: import("@playwright/test").Page, save: Save) {
   );
   await page.goto("/");
 }
+for (const tool of ["Marca", "Rasclet del bosc"]) {
+  test(`compass reveals its hint while ${tool} is selected`, async ({
+    page,
+  }) => {
+    const save = initialSave();
+    save.run.abilities.compass = 2;
+    save.run.compassLeft = 2;
+    await seed(page, save);
+    await page.getByRole("button", { name: new RegExp(tool) }).click();
+    const compass = page.getByRole("button", { name: /Olfacte boletaire/ });
+    await compass.click();
+    await expect(page.getByRole("status")).toContainText("Des de E5");
+    await expect(page.getByRole("status")).toBeInViewport({ ratio: 1 });
+    await expect(compass).toContainText("1/2");
+    await expect(page.getByRole("meter")).toHaveAttribute(
+      "aria-valuenow",
+      String(save.run.turns),
+    );
+    await compass.click();
+    await expect(compass).toContainText("1/2");
+  });
+}
 test("Catalan game, tools, persistence, and accessible dialogs", async ({
   page,
   isMobile,
@@ -33,6 +55,13 @@ test("Catalan game, tools, persistence, and accessible dialogs", async ({
     await expect(
       page.getByRole("button", { name: "Marca", exact: true }),
     ).toBeInViewport({ ratio: 1 });
+    for (const name of [/Rasclet del bosc/, /Olfacte boletaire/]) {
+      const action = page.getByRole("button", { name });
+      await expect(action).toBeInViewport({ ratio: 1 });
+      const bounds = await action.boundingBox();
+      expect(bounds?.width).toBeGreaterThanOrEqual(44);
+      expect(bounds?.height).toBeGreaterThanOrEqual(44);
+    }
   }
   await page.getByRole("button", { name: "Marca", exact: true }).click();
   await page
@@ -41,7 +70,10 @@ test("Catalan game, tools, persistence, and accessible dialogs", async ({
   await expect(
     page.getByRole("button", { name: "A1, marcada", exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole("meter")).toHaveAttribute("aria-valuenow", "45");
+  await expect(page.getByRole("meter")).toHaveAttribute(
+    "aria-valuenow",
+    String(initialSave().run.budget),
+  );
   await page.reload();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(
@@ -53,7 +85,10 @@ test("Catalan game, tools, persistence, and accessible dialogs", async ({
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("button", { name: "Olfacte boletaire" }).click();
   await expect(page.getByRole("status")).toContainText("Des de E5");
-  await expect(page.getByRole("meter")).toHaveAttribute("aria-valuenow", "45");
+  await expect(page.getByRole("meter")).toHaveAttribute(
+    "aria-valuenow",
+    String(initialSave().run.budget),
+  );
   await page
     .getByRole("button", { name: "El meu quadern", exact: true })
     .click();
@@ -117,7 +152,10 @@ test("loss shows mushroom breakdown, stats, remaining mushrooms, and can restart
   await page
     .getByRole("button", { name: "Nova excursió", exact: true })
     .click();
-  await expect(page.getByRole("meter")).toHaveAttribute("aria-valuenow", "45");
+  await expect(page.getByRole("meter")).toHaveAttribute(
+    "aria-valuenow",
+    String(initialSave().run.budget),
+  );
 });
 test("production PWA installs its cache and reloads offline", async ({
   page,
@@ -206,7 +244,7 @@ for (const power of [1, 2, 3]) {
     await expect(page.locator(".basket-total>strong")).toHaveText("1");
     await expect(page.getByRole("meter")).toHaveAttribute(
       "aria-valuenow",
-      String(45 - Math.ceil(3 / power)),
+      String(save.run.budget - Math.ceil(3 / power)),
     );
     expect(
       await page.evaluate(

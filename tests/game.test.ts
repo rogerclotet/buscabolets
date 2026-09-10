@@ -5,6 +5,7 @@ import {
   clue,
   collectedCount,
   initialSave,
+  levelBudget,
   mushroomAt,
   neighbors,
   parseSave,
@@ -26,6 +27,14 @@ function win(save: Save): Save {
     }
   return next;
 }
+test("turn budgets stay tight and stamina adds two turns per upgrade", () => {
+  assert.equal(initialSave().run.budget, 32);
+  assert.equal(levelBudget(2, 0), 31);
+  assert.equal(levelBudget(3, 0), 30);
+  assert.equal(levelBudget(40, 0), 30);
+  assert.equal(levelBudget(1, 1), 34);
+  assert.equal(levelBudget(40, 5), 40);
+});
 test("seeded boards are repeatable, valid, non-overlapping, with horizontal pairs", () => {
   for (let seed = 0; seed < 100; seed++) {
     const save = initialSave(seed);
@@ -57,7 +66,7 @@ test("basic mushrooms collect once, cost one turn, and update lifetime statistic
   const next = pick(save, tile);
   assert.equal(next.run.collected.rovello, 1);
   assert.equal(next.run.score, 10);
-  assert.equal(next.run.turns, 44);
+  assert.equal(next.run.turns, save.run.turns - 1);
   assert.equal(next.totals.turns, 1);
   assert.equal(next.totals.score, 10);
   assert.equal(next.totals.mushrooms.rovello, 1);
@@ -167,7 +176,7 @@ test("flags cost nothing and block picking and flood reveal", () => {
   const save = initialSave();
   const flagged = transition(save, { type: "tile", index: 0, tool: "flag" });
   assert.equal(flagged.run.used, 0);
-  assert.equal(flagged.run.turns, 45);
+  assert.equal(flagged.run.turns, save.run.turns);
   assert.ok(flagged.run.flags.includes(0));
   assert.equal(pick(flagged, 0), flagged);
   assert.equal(
@@ -204,6 +213,35 @@ test("compass gives a free direction from the last tile and ignores finished hal
   assert.equal(next.run.used, 0);
   assert.equal(next.run.compassLeft, 0);
   assert.equal(transition(next, { type: "compass" }), next);
+});
+test("compass prioritizes hidden mushrooms over the unfinished one underfoot", () => {
+  const save = initialSave();
+  save.run.lastTile = 44;
+  save.run.revealed = [44];
+  save.run.mushrooms = [
+    { species: "cep", tiles: [44], damage: [1] },
+    { species: "rovello", tiles: [46], damage: [0] },
+  ];
+  const next = transition(save, { type: "compass" });
+  assert.match(next.run.hint, /E5.*est →/);
+  assert.equal(next.run.turns, save.run.turns);
+  assert.deepEqual(next.run.revealed, save.run.revealed);
+});
+test("compass upgrades grant extra usable hints without spending turns on repeats", () => {
+  const won = win(initialSave());
+  won.run.choices = ["compass"];
+  const save = transition(won, { type: "upgrade", ability: "compass" });
+  assert.equal(save.run.compassLeft, 2);
+  const first = transition(save, { type: "compass" });
+  assert.equal(first.run.compassLeft, 1);
+  assert.equal(transition(first, { type: "compass" }), first);
+  const tile = first.run.mushrooms.find((m) => m.species === "rovello")
+    ?.tiles[0];
+  assert.ok(tile !== undefined);
+  const moved = pick(first, tile);
+  const second = transition(moved, { type: "compass" });
+  assert.equal(second.run.compassLeft, 0);
+  assert.equal(second.run.turns, moved.run.turns);
 });
 test("winning offers three distinct upgrades and refills abilities next level", () => {
   const won = win(initialSave());
@@ -266,6 +304,52 @@ test("spores reveal empty tiles without turns or unintended collections", () => 
   assert.equal(next.run.used, 1);
   assert.equal(totalCollected(next.run.collected), 1);
 });
+test("spores choose across all eligible cells without favoring board order", () => {
+  const eligible = [33, 35, 53, 55];
+  const selections = new Map(eligible.map((tile) => [tile, 0]));
+  for (let seed = 0; seed < 256; seed++) {
+    const save = initialSave(seed);
+    save.run.abilities.spores = 1;
+    save.run.mushrooms = [
+      { species: "rovello", tiles: [44], damage: [0] },
+      { species: "rovello", tiles: [99], damage: [0] },
+    ];
+    save.run.flags = [34];
+    save.run.revealed = Array.from({ length: 100 }, (_, i) => i).filter(
+      (i) => ![...eligible, 34, 44, 99].includes(i),
+    );
+    const next = pick(save, 44);
+    const bonus = next.run.revealed.filter(
+      (tile) => tile !== 44 && !save.run.revealed.includes(tile),
+    );
+    assert.equal(bonus.length, 1);
+    for (const tile of bonus) {
+      assert.ok(eligible.includes(tile));
+      selections.set(tile, (selections.get(tile) ?? 0) + 1);
+    }
+    assert.equal(next.run.used, 1);
+    assert.equal(totalCollected(next.run.collected), 1);
+    assert.deepEqual(next, pick(save, 44), "replaying an action is stable");
+  }
+  for (const [tile, count] of selections)
+    assert.ok(count > 32 && count < 96, `tile ${tile} chosen ${count} times`);
+});
+test("spores use remaining reveals after flooding and stop when no cells remain", () => {
+  for (const spores of [2, 5]) {
+    for (let seed = 0; seed < 32; seed++) {
+      const save = initialSave(seed);
+      save.run.abilities.spores = spores;
+      save.run.mushrooms = [{ species: "rovello", tiles: [99], damage: [0] }];
+      save.run.revealed = Array.from({ length: 100 }, (_, i) => i).filter(
+        (i) => ![0, 1, 98, 99].includes(i),
+      );
+      const next = pick(save, 99);
+      assert.equal(next.run.revealed.length, 100);
+      assert.equal(new Set(next.run.revealed).size, 100);
+      assert.equal(next.run.used, 1);
+    }
+  }
+});
 test("invalid actions and unearned upgrades do not change state", () => {
   const save = initialSave();
   assert.equal(pick(save, -1), save);
@@ -326,7 +410,7 @@ test("save validation rejects frozen games, impossible pairs, and false rewards"
   const save = initialSave();
   save.run.turns = 0;
   assert.equal(parseSave(JSON.stringify(save)), null);
-  save.run.turns = 45;
+  save.run.turns = save.run.budget;
   save.run.phase = "reward";
   assert.equal(parseSave(JSON.stringify(save)), null);
   save.run.phase = "playing";

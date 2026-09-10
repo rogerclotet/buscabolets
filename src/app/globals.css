@@ -500,10 +500,11 @@ h2 {
   padding: 16px 25px 13px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
 }
 .tool-switch {
   display: flex;
+  flex: 1;
   gap: 2px;
   background: #f0f1e7;
   border-radius: 6px;
@@ -512,9 +513,13 @@ h2 {
 }
 .tool-switch button {
   display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 6px;
-  padding: 6px 11px;
+  min-height: 48px;
+  gap: 4px;
+  padding: 5px 6px;
   border: 0;
   background: transparent;
   font-size: 11px;
@@ -527,12 +532,52 @@ h2 {
   box-shadow: 0 1px 3px #45562a12;
   color: #5b704a;
 }
-.board-size {
-  font-size: 10px;
-  color: #97a089;
+.board-abilities {
+  display: flex;
+  flex: 1;
+  gap: 6px;
 }
-.board-size > span {
-  margin-left: 4px;
+.board-ability {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 56px;
+  padding: 5px 6px;
+  border: 1px solid #dce3cc;
+  border-radius: 6px;
+  background: #f0f4e6;
+  color: #53683b;
+  font-size: 11px;
+  font-weight: 800;
+}
+.rake-action {
+  background: #f5efe3;
+  border-color: #e5dbc5;
+  color: #82673d;
+}
+.board-ability:not(:disabled):hover {
+  filter: brightness(0.97);
+}
+.board-ability.armed {
+  background: #e7d7b5;
+  border-color: #96763d;
+  box-shadow: inset 0 0 0 1px #96763d;
+}
+.board-ability:disabled {
+  opacity: 0.45;
+}
+.ability-control-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ability-uses {
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .board-message {
   display: flex;
@@ -543,9 +588,12 @@ h2 {
   padding: 13px 17px;
   background: #f4f5eb;
   font-size: 10px;
-  color: #8b947a;
+  color: #647451;
   min-height: 44px;
   line-height: 1.6;
+}
+.board-message > svg {
+  flex-shrink: 0;
 }
 .tool-rake .tile.covered:hover {
   background: #e3cc98;
@@ -672,14 +720,6 @@ h2 {
 .basket-foot > span {
   color: #7a866c;
 }
-.level-pill {
-  border: 1px solid #dce1cb;
-  background: #edf1e2;
-  border-radius: 5px;
-  padding: 2px 7px;
-  font-size: 10px;
-  color: #7d8b65;
-}
 .card-description {
   font-size: 10px;
   color: #929984;
@@ -711,30 +751,23 @@ h2 {
   color: #9c8353;
   flex-shrink: 0;
 }
-.talent-icon.rake {
-  background: #ede5d8;
-  color: #a08b66;
-}
 .talent-icon.compass {
   background: #e8eddc;
   color: #7f945e;
 }
-.talent h4,
-.talent-title {
+.talent h4 {
   display: block;
   font-size: 11px;
   font-weight: 800;
 }
-.talent h4 span,
-.talent-title small {
+.talent h4 span {
   font-size: 8px;
   font-weight: 600;
   color: #a0a58f;
   margin-left: 4px;
   white-space: nowrap;
 }
-.talent p,
-.talent-description {
+.talent p {
   display: block;
   font-size: 9px;
   color: #949b85;
@@ -746,27 +779,6 @@ h2 {
   font-weight: 800;
   color: #a0a58c;
   margin-left: auto;
-}
-.charge-badge {
-  font-size: 9px;
-  border: 1px solid #dce3cc;
-  border-radius: 4px;
-  padding: 3px 5px;
-  color: #7b8c61;
-  margin-left: auto;
-  white-space: nowrap;
-  background: #f0f4e6;
-}
-.talent-action {
-  border-radius: 7px;
-}
-.talent-action:not(:disabled):hover,
-.talent-action.armed {
-  background: #edf1e2;
-  box-shadow: 0 0 0 6px #edf1e2;
-}
-.talent-action:disabled {
-  opacity: 0.45;
 }
 .talent-note {
   display: flex;
@@ -1244,9 +1256,6 @@ footer button:hover {
   .board-tools {
     padding: 13px 19px 12px;
   }
-  .board-size > span {
-    display: none;
-  }
   .basket-card,
   .talents-card {
     padding: 17px;
@@ -1351,9 +1360,6 @@ footer button:hover {
   .board-tools {
     padding: 16px 25px 13px;
   }
-  .board-size > span {
-    display: inline;
-  }
   .board-message {
     font-size: 11px;
   }
@@ -1385,11 +1391,9 @@ footer button:hover {
   .card-description {
     font-size: 9px;
   }
-  .talent-title,
   .talent h4 {
     font-size: 10px;
   }
-  .talent-title small,
   .talent h4 span {
     display: none;
   }
@@ -1400,7 +1404,6 @@ footer button:hover {
   .talent {
     gap: 7px;
   }
-  .talent-description,
   .talent p {
     font-size: 8px;
   }
@@ -1569,21 +1572,19 @@ footer button:hover {
     font-size: 17px;
   }
   .board-tools {
-    padding: 8px 12px;
+    padding: 6px 12px;
   }
   .tool-switch button {
+    min-height: 44px;
     font-size: 10px;
     padding: 5px 8px;
     gap: 4px;
   }
-  .board-size {
-    font-size: 9px;
-  }
-  .board-size > span {
-    display: none;
+  .board-ability {
+    min-height: 52px;
   }
   .board-message {
-    font-size: 9px;
+    font-size: 11px;
     min-height: 47px;
     padding: 10px 14px;
     justify-content: flex-start;
@@ -1642,16 +1643,13 @@ footer button:hover {
   .talent-list {
     margin-top: 10px;
   }
-  .talent-title,
   .talent h4 {
     font-size: 12px;
   }
-  .talent-title small,
   .talent h4 span {
     display: inline;
     font-size: 9px;
   }
-  .talent-description,
   .talent p {
     font-size: 10px;
   }
@@ -1664,9 +1662,6 @@ footer button:hover {
     padding: 8px;
   }
   .card-description {
-    font-size: 11px;
-  }
-  .charge-badge {
     font-size: 11px;
   }
   .passive-badge {
@@ -1810,6 +1805,17 @@ footer button:hover {
   }
   .welcome-copy .eyebrow {
     font-size: 8px;
+  }
+}
+@media (max-width: 480px) and (max-height: 620px) {
+  .game-heading {
+    margin: 8px 0;
+  }
+  .game-heading .mini-icon {
+    display: none;
+  }
+  .board-top {
+    padding: 8px 17px 6px;
   }
 }
 @media (prefers-reduced-motion: no-preference) {
