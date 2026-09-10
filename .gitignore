@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated offline release and browser test artifacts
+/public/sw.js
+/playwright-report/
+/test-results/
+!.env.production.example
