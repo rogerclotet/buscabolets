@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const SIZE = 10;
+export const STAMINA_TURNS = 2;
 export const SPECIES = {
   rovello: {
     name: "Rovelló",
@@ -80,13 +81,12 @@ export const ABILITIES: Record<
   compass: {
     name: "Olfacte boletaire",
     description:
-      "+1 pista gratuïta per nivell cap al bolet pendent més proper.",
+      "+1 ús d'Olfacte per nivell. Prem-lo per obtenir una pista cap a un bolet amagat.",
     icon: "compass",
   },
   stamina: {
     name: "Cames fresques",
-    description:
-      "+5 torns a cada nivell. Una mica més de camí abans que es faci fosc.",
+    description: `+${STAMINA_TURNS} torns a cada nivell. Una mica més de camí abans que es faci fosc.`,
     icon: "sun",
   },
   spores: {
@@ -242,7 +242,7 @@ export function totalCollected(counts: Counts): number {
   return speciesList.reduce((sum, key) => sum + counts[key], 0);
 }
 export function levelBudget(level: number, stamina: number): number {
-  return Math.max(30, 46 - level) + stamina * 5;
+  return Math.max(30, 33 - level) + stamina * STAMINA_TURNS;
 }
 function makeBoard(level: number, seed: number): Mushroom[] {
   const rng = random(seed + level * 7919);
@@ -317,13 +317,21 @@ function reveal(run: Run, index: number) {
       run.collected[mushroom.species]++;
       run.score += SPECIES[mushroom.species].points;
       run.hint = `${SPECIES[mushroom.species].name} al cistell! +${SPECIES[mushroom.species].points} punts.`;
-      const empty = Array.from({ length: 100 }, (_, i) => i).filter(
-        (i) =>
-          !run.revealed.includes(i) &&
-          !run.flags.includes(i) &&
-          !mushroomAt(run, i),
+      // Keep reducer replays stable, with a fresh sequence for each collection.
+      const rng = random(
+        run.seed + run.level * 7919 + totalCollected(run.collected) * 104729,
       );
-      empty.slice(0, run.abilities.spores).forEach((i) => flood(run, i));
+      for (let bonus = 0; bonus < run.abilities.spores; bonus++) {
+        const empty = Array.from({ length: 100 }, (_, i) => i).filter(
+          (i) =>
+            !run.revealed.includes(i) &&
+            !run.flags.includes(i) &&
+            !mushroomAt(run, i),
+        );
+        const tile = empty[Math.floor(rng() * empty.length)];
+        if (tile === undefined) break;
+        flood(run, tile);
+      }
     } else {
       const taps = tapsRemaining(run, index);
       run.hint =
@@ -408,15 +416,19 @@ export function transition(previous: Save, action: Action): Save {
           (_, i) => (m.damage[i] ?? 0) < SPECIES[m.species].strength,
         ),
       );
+    const hidden = pending.filter((i) => !run.revealed.includes(i));
+    const candidates = hidden.length > 0 ? hidden : pending;
     const distance = (i: number) =>
       Math.hypot(
         (i % 10) - (run.lastTile % 10),
         Math.floor(i / 10) - Math.floor(run.lastTile / 10),
       );
-    const nearest = pending.sort((a, b) => distance(a) - distance(b))[0];
+    const nearest = candidates.sort((a, b) => distance(a) - distance(b))[0];
     if (nearest === undefined) return previous;
+    const hint = `Des de ${String.fromCharCode(65 + (run.lastTile % 10))}${Math.floor(run.lastTile / 10) + 1}, segueix en direcció ${direction(run.lastTile, nearest)}. Hi ha un bolet a prop!`;
+    if (run.hint === hint) return previous;
     run.compassLeft--;
-    run.hint = `Des de ${String.fromCharCode(65 + (run.lastTile % 10))}${Math.floor(run.lastTile / 10) + 1}, segueix en direcció ${direction(run.lastTile, nearest)}. Hi ha un bolet a prop!`;
+    run.hint = hint;
     return save;
   }
   const index = action.index;

@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ABILITIES,
   SPECIES,
-  abilityList,
+  STAMINA_TURNS,
   clue,
   collectedCount,
   initialSave,
@@ -137,6 +137,7 @@ export default function Game() {
   const [sound, setSound] = useState(false);
   const [focusTile, setFocusTile] = useState(0);
   const boardRef = useRef<HTMLDivElement>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
   const { run, totals } = state.save;
   useEffect(() => {
     try {
@@ -177,6 +178,15 @@ export default function Game() {
   const act = (action: Action) => {
     // Never apply a move to the placeholder run before restoring browser storage.
     if (!state.ready) return;
+    if (action.type === "compass") {
+      setTool("pick");
+      requestAnimationFrame(() => {
+        feedbackRef.current?.scrollIntoView({
+          block: "nearest",
+          behavior: "smooth",
+        });
+      });
+    }
     const next = transition(state.save, action);
     if (next === state.save) return;
     dispatch({ kind: "action", action });
@@ -502,9 +512,43 @@ export default function Game() {
                   Marca
                 </button>
               </div>
-              <span className="board-size">
-                10 × 10 <span>caselles de bosc</span>
-              </span>
+              <div
+                className="board-abilities"
+                role="group"
+                aria-label="Talents actius"
+              >
+                <button
+                  className={`board-ability rake-action ${tool === "rake" ? "armed" : ""}`}
+                  disabled={!run.rakeLeft || run.phase !== "playing"}
+                  onClick={() => setTool(tool === "rake" ? "pick" : "rake")}
+                  aria-pressed={tool === "rake"}
+                  aria-label={`Rasclet del bosc, ${run.rakeLeft} de ${run.abilities.rake} usos. Explora 3 caselles amb 1 torn`}
+                  title="Rasclet del bosc: 3 caselles amb 1 torn"
+                >
+                  <span className="ability-control-top">
+                    <Icon name="rake" size={18} />
+                    <span className="ability-uses" aria-hidden="true">
+                      {run.rakeLeft}/{run.abilities.rake}
+                    </span>
+                  </span>
+                  <span>Rasclet</span>
+                </button>
+                <button
+                  className="board-ability hint-action"
+                  disabled={!run.compassLeft || run.phase !== "playing"}
+                  onClick={() => act({ type: "compass" })}
+                  aria-label={`Olfacte boletaire, ${run.compassLeft} de ${run.abilities.compass} usos. Pista gratuïta`}
+                  title="Olfacte boletaire: una pista sense gastar torns"
+                >
+                  <span className="ability-control-top">
+                    <Icon name="compass" size={18} />
+                    <span className="ability-uses" aria-hidden="true">
+                      {run.compassLeft}/{run.abilities.compass}
+                    </span>
+                  </span>
+                  <span>Pista</span>
+                </button>
+              </div>
             </div>
             {run.phase === "playing" &&
               run.revealed.some((index) => {
@@ -526,7 +570,12 @@ export default function Game() {
                   </p>
                 </div>
               )}
-            <div className="board-message" role="status" aria-live="polite">
+            <div
+              className="board-message"
+              ref={feedbackRef}
+              role="status"
+              aria-live="polite"
+            >
               <Icon name={tool === "rake" ? "rake" : "leaf"} size={17} />
               <span>
                 {tool === "rake"
@@ -589,17 +638,11 @@ export default function Game() {
               <div className="card-heading">
                 <h3>
                   <Icon name="spark" size={20} />
-                  Els teus talents
+                  Talents passius
                 </h3>
-                <span className="level-pill">
-                  {abilityList.reduce(
-                    (sum, key) => sum + run.abilities[key],
-                    0,
-                  )}
-                </span>
               </div>
               <p className="card-description">
-                Un petit avantatge per fer un gran cistell.
+                Sempre actius, sense prémer cap botó.
               </p>
               <div className="talent-list">
                 <div className="talent">
@@ -614,48 +657,6 @@ export default function Game() {
                   </div>
                   <span className="passive-badge">PASSIU</span>
                 </div>
-                <button
-                  className={`talent talent-action ${tool === "rake" ? "armed" : ""}`}
-                  disabled={!run.rakeLeft || run.phase !== "playing"}
-                  onClick={() => setTool(tool === "rake" ? "pick" : "rake")}
-                  aria-pressed={tool === "rake"}
-                >
-                  <span className="talent-icon rake">
-                    <Icon name="rake" />
-                  </span>
-                  <span>
-                    <span className="talent-title">
-                      Rasclet del bosc <small>Niv. {run.abilities.rake}</small>
-                    </span>
-                    <span className="talent-description">
-                      Explora 3 caselles alhora
-                    </span>
-                  </span>
-                  <span className="charge-badge">
-                    {run.rakeLeft}/{run.abilities.rake}
-                  </span>
-                </button>
-                <button
-                  className="talent talent-action"
-                  disabled={!run.compassLeft || run.phase !== "playing"}
-                  onClick={() => act({ type: "compass" })}
-                >
-                  <span className="talent-icon compass">
-                    <Icon name="compass" />
-                  </span>
-                  <span>
-                    <span className="talent-title">
-                      Olfacte boletaire{" "}
-                      <small>Niv. {run.abilities.compass}</small>
-                    </span>
-                    <span className="talent-description">
-                      Una pista cap al més proper
-                    </span>
-                  </span>
-                  <span className="charge-badge">
-                    {run.compassLeft}/{run.abilities.compass}
-                  </span>
-                </button>
                 {(["stamina", "spores"] satisfies (keyof typeof ABILITIES)[])
                   .filter((key) => run.abilities[key] > 0)
                   .map((key) => (
@@ -670,7 +671,7 @@ export default function Game() {
                         </h4>
                         <p>
                           {key === "stamina"
-                            ? `+${run.abilities[key] * 5} torns per nivell`
+                            ? `+${run.abilities[key] * STAMINA_TURNS} torns per nivell`
                             : `+${run.abilities[key]} caselles per bolet`}
                         </p>
                       </div>
