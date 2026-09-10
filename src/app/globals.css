@@ -137,21 +137,6 @@ nav {
   white-space: nowrap;
   color: #757b6b;
 }
-.hero {
-  position: relative;
-  min-height: 292px;
-  margin: 31px 0 34px;
-  background: #eeeddf;
-  border: 1px solid #e4e5d5;
-  border-radius: 14px;
-  overflow: hidden;
-}
-.hero-copy {
-  position: relative;
-  z-index: 2;
-  padding: 32px 36px 27px;
-  pointer-events: none;
-}
 .eyebrow {
   font-size: 10px;
   letter-spacing: 1.7px;
@@ -167,60 +152,11 @@ nav {
   background: #849a63;
   border-radius: 50%;
 }
-h1 {
-  font-family: var(--font-display);
-  font-size: 40px;
-  line-height: 1.2;
-  letter-spacing: -1.1px;
-  font-weight: 600;
-  margin: 13px 0 12px;
-  color: #354835;
-}
-.hero-copy > p {
-  font-size: 13px;
-  line-height: 1.8;
-  color: #7b806f;
-}
-.hero-caption {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 19px;
-  font-size: 11px;
-  color: #8a8c79;
-}
-.forest-art {
-  position: absolute;
-  right: 0;
-  bottom: -3px;
-  height: 100%;
-  width: 55%;
-  max-width: 620px;
-}
-.hero-stamp {
-  position: absolute;
-  right: 172px;
-  top: 22px;
-  text-align: center;
-  transform: rotate(12deg);
-  font-family: var(--font-display);
-  font-size: 12px;
-  color: #778065;
-  line-height: 1.4;
-}
-.hero-stamp b {
-  font-weight: 600;
-}
-.hero-stamp > span {
-  display: block;
-  font-size: 27px;
-  margin-top: 2px;
-}
 .game-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 0 0 19px;
+  margin: 24px 0 19px;
 }
 .section-heading {
   display: flex;
@@ -237,6 +173,7 @@ h1 {
   border-radius: 10px;
   color: #718162;
 }
+.section-heading h1,
 h2 {
   font-size: 23px;
   font-family: var(--font-display);
@@ -364,36 +301,12 @@ h2 {
   background: #ce8a5f;
 }
 .board-surround {
-  padding: 8px 25px 0 12px;
-}
-.column-labels {
-  margin-left: 24px;
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  padding-bottom: 7px;
-  color: #989e8b;
-  text-align: center;
-  font-size: 9px;
-}
-.numbered-board {
-  display: flex;
-  gap: 9px;
-}
-.row-labels {
-  width: 15px;
-  flex-shrink: 0;
-  display: grid;
-  grid-template-rows: repeat(10, 1fr);
-  align-items: center;
-  text-align: center;
-  color: #989e8b;
-  font-size: 9px;
+  padding: 8px 25px 0;
 }
 .board-grid {
   display: grid;
   grid-template-columns: repeat(10, minmax(0, 1fr));
   gap: 5px;
-  flex: 1;
   min-width: 0;
 }
 .board-grid[aria-busy="true"] {
@@ -584,7 +497,7 @@ h2 {
   color: #587443;
 }
 .board-tools {
-  padding: 16px 25px 13px 35px;
+  padding: 16px 25px 13px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1273,17 +1186,6 @@ footer button:hover {
 .centered {
   margin: 12px auto 0;
 }
-@media (min-width: 1300px) {
-  .hero {
-    min-height: 303px;
-  }
-  .hero-copy {
-    padding-top: 35px;
-  }
-  h1 {
-    font-size: 42px;
-  }
-}
 @media (max-width: 1050px) {
   .app-shell {
     padding: 0 27px;
@@ -1300,21 +1202,6 @@ footer button:hover {
   }
   .help-button {
     font-size: 11px;
-  }
-  .hero-copy {
-    padding-left: 28px;
-  }
-  h1 {
-    font-size: 35px;
-  }
-  .hero-copy > p {
-    font-size: 12px;
-  }
-  .hero {
-    min-height: 279px;
-  }
-  .hero-stamp {
-    right: 22px;
   }
   .game-layout {
     grid-template-columns: minmax(0, 1.5fr) minmax(285px, 1fr);
@@ -1342,7 +1229,7 @@ footer button:hover {
   }
   .board-surround {
     padding-right: 19px;
-    padding-left: 8px;
+    padding-left: 19px;
   }
   .board-grid {
     gap: 4px;
@@ -1355,7 +1242,7 @@ footer button:hover {
     height: 25px;
   }
   .board-tools {
-    padding: 13px 19px 12px 31px;
+    padding: 13px 19px 12px;
   }
   .board-size > span {
     display: none;
@@ -1425,38 +1312,6 @@ footer button:hover {
   .help-button {
     font-size: 11px;
   }
-  .hero {
-    margin-top: 21px;
-    margin-bottom: 25px;
-    min-height: 258px;
-  }
-  .hero-copy {
-    padding: 25px 23px;
-  }
-  .hero-copy h1 {
-    font-size: 31px;
-  }
-  .hero-copy > p {
-    font-size: 11px;
-    max-width: 300px;
-  }
-  .hero-copy .eyebrow {
-    font-size: 8px;
-  }
-  .hero-caption {
-    font-size: 9px;
-  }
-  .forest-art {
-    width: 62%;
-    right: -53px;
-    opacity: 0.8;
-    bottom: -18px;
-  }
-  .hero-stamp {
-    font-size: 10px;
-    right: 14px;
-    top: 18px;
-  }
   .game-layout {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -1481,7 +1336,7 @@ footer button:hover {
     font-size: 22px;
   }
   .board-surround {
-    padding: 12px 25px 0 12px;
+    padding: 12px 25px 0;
   }
   .board-grid {
     gap: 5px;
@@ -1494,7 +1349,7 @@ footer button:hover {
     height: 31px;
   }
   .board-tools {
-    padding: 16px 25px 13px 35px;
+    padding: 16px 25px 13px;
   }
   .board-size > span {
     display: inline;
@@ -1607,7 +1462,7 @@ footer button:hover {
     padding: 0 15px;
   }
   .site-header {
-    height: 108px;
+    height: 88px;
   }
   .brand {
     font-size: 25px;
@@ -1632,60 +1487,18 @@ footer button:hover {
     width: 16px;
     height: 16px;
   }
-  .hero {
-    min-height: 298px;
-    border-radius: 11px;
-    margin-top: 18px;
-    margin-bottom: 24px;
-  }
-  .hero-copy {
-    padding: 24px 20px;
-  }
-  .hero-copy h1 {
-    font-size: 31px;
-    line-height: 1.15;
-    margin-top: 12px;
-  }
-  .hero-copy > p {
-    font-size: 11px;
-    max-width: 238px;
-  }
-  .desktop-break {
-    display: none;
-  }
-  .hero-caption {
-    margin-top: 15px;
-    max-width: 162px;
-    line-height: 1.5;
-  }
-  .forest-art {
-    width: 75%;
-    height: 190px;
-    right: -50px;
-    bottom: -12px;
-    opacity: 0.95;
-  }
-  .hero-stamp {
-    font-size: 9px;
-    top: auto;
-    bottom: 111px;
-    right: 12px;
-  }
-  .hero-stamp > span {
-    font-size: 20px;
-  }
   .game-heading {
     gap: 10px;
-    margin-bottom: 15px;
+    margin: 14px 0 12px;
   }
   .section-heading {
     gap: 9px;
   }
-  .section-heading h2 {
+  .section-heading h1 {
     font-size: 20px;
   }
   .section-heading p {
-    font-size: 9px;
+    display: none;
   }
   .mini-icon {
     width: 33px;
@@ -1696,10 +1509,11 @@ footer button:hover {
     gap: 4px;
   }
   .board-top {
-    padding: 17px 17px 14px;
+    padding: 12px 17px 10px;
   }
   .level-label h3 {
-    font-size: 21px;
+    font-size: 18px;
+    line-height: 1.2;
   }
   .level-number {
     font-size: 23px;
@@ -1734,18 +1548,7 @@ footer button:hover {
     margin: 10px 16px 0;
   }
   .board-surround {
-    padding: 9px 12px 0 5px;
-  }
-  .numbered-board {
-    gap: 5px;
-  }
-  .column-labels {
-    margin-left: 20px;
-    font-size: 8px;
-    padding-bottom: 6px;
-  }
-  .row-labels {
-    font-size: 8px;
+    padding: 9px 12px 0;
   }
   .board-grid {
     gap: 3px;
@@ -1766,7 +1569,7 @@ footer button:hover {
     font-size: 17px;
   }
   .board-tools {
-    padding: 13px 13px 12px 25px;
+    padding: 8px 12px;
   }
   .tool-switch button {
     font-size: 10px;
@@ -1947,13 +1750,69 @@ footer button:hover {
     width: 100%;
   }
 }
+.dialog.welcome-dialog {
+  padding: 0;
+  width: min(480px, calc(100% - 32px));
+}
+.welcome-dialog .dialog-close {
+  z-index: 1;
+  background: #fafaf2;
+}
+.welcome-art {
+  position: relative;
+  height: 150px;
+  overflow: hidden;
+  background: #eeeddf;
+  border-bottom: 1px solid var(--line);
+}
+.welcome-art .forest-art {
+  position: absolute;
+  width: 100%;
+  height: 220px;
+  right: -65px;
+  bottom: -20px;
+}
+.welcome-caption {
+  position: absolute;
+  top: 32px;
+  left: 28px;
+  width: 100px;
+  font: 600 23px/1.2 var(--font-display);
+  color: #657750;
+  transform: rotate(-8deg);
+}
+.welcome-copy {
+  padding: 26px 28px 22px;
+}
+.welcome-copy > p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #68735f;
+}
+.welcome-copy .guide-steps {
+  margin: 20px 0;
+  gap: 12px;
+}
+.welcome-copy .primary-button {
+  width: 100%;
+}
+.welcome-copy .welcome-help {
+  margin-top: 12px;
+  font-size: 11px;
+  text-align: center;
+}
+@media (max-width: 480px) {
+  .welcome-art {
+    height: 120px;
+  }
+  .welcome-copy {
+    padding: 22px;
+  }
+  .welcome-copy .eyebrow {
+    font-size: 8px;
+  }
+}
 @media (prefers-reduced-motion: no-preference) {
-  .hero-copy {
-    animation: arrive 0.6s ease both;
-  }
-  .forest-art {
-    animation: arrive 0.9s ease both;
-  }
   .game-layout {
     animation: arrive 0.6s 0.1s ease both;
   }
