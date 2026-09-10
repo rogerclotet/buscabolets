@@ -25,15 +25,18 @@ import { PwaUpdate } from "./pwa-update";
 
 const STORAGE_KEY = "buscabolets-v1";
 const WELCOME_KEY = "buscabolets-welcome-v1";
-type Panel =
-  | "guide"
-  | "collection"
-  | "stats"
-  | "install"
-  | "restart"
-  | "reward"
-  | "ended"
-  | null;
+type Panel = "guide" | "install" | "restart" | "reward" | "ended" | null;
+const screens = [
+  { id: "forest", label: "L’excursió", icon: "compass" },
+  { id: "basket", label: "El cistell", icon: "basket" },
+  { id: "collection", label: "El boletari", icon: "leaf" },
+  { id: "stats", label: "El meu quadern", icon: "chart" },
+] satisfies {
+  id: "forest" | "basket" | "collection" | "stats";
+  label: string;
+  icon: React.ComponentProps<typeof Icon>["name"];
+}[];
+type Screen = (typeof screens)[number]["id"];
 type State = {
   save: Save;
   ready: boolean;
@@ -134,10 +137,10 @@ export default function Game() {
   });
   const [tool, setTool] = useState<Tool>("pick");
   const [panel, setPanel] = useState<Panel>(null);
+  const [screen, setScreen] = useState<Screen>("forest");
   const [sound, setSound] = useState(false);
   const [focusTile, setFocusTile] = useState(0);
   const boardRef = useRef<HTMLDivElement>(null);
-  const feedbackRef = useRef<HTMLDivElement>(null);
   const { run, totals } = state.save;
   useEffect(() => {
     try {
@@ -180,12 +183,6 @@ export default function Game() {
     if (!state.ready) return;
     if (action.type === "compass") {
       setTool("pick");
-      requestAnimationFrame(() => {
-        feedbackRef.current?.scrollIntoView({
-          block: "nearest",
-          behavior: "smooth",
-        });
-      });
     }
     const next = transition(state.save, action);
     if (next === state.save) return;
@@ -198,6 +195,7 @@ export default function Game() {
     act({ type: "new", seed: makeSeed() });
     setTool("pick");
     setPanel(null);
+    setScreen("forest");
   };
   const found = collectedCount(run);
   const percent = (run.turns / run.budget) * 100;
@@ -206,15 +204,11 @@ export default function Game() {
     1 +
     (run.phase === "reward" || run.mushrooms.every(isCollected) ? 1 : 0);
   const panelTitle =
-    panel === "stats"
-      ? "El teu quadern"
-      : panel === "collection"
-        ? "El boletari"
-        : panel === "reward"
-          ? "Tria un talent"
-          : panel === "ended"
-            ? "Final de l'excursió"
-            : "Informació";
+    panel === "reward"
+      ? "Tria un talent"
+      : panel === "ended"
+        ? "Final de l'excursió"
+        : "Informació";
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -226,64 +220,26 @@ export default function Game() {
             buscabolets<span className="brand-dot">.</span>
           </span>
         </Link>
-        <nav aria-label="Navegació principal">
+        <div className="header-actions">
           <button
-            className={
-              panel !== "collection" && panel !== "stats"
-                ? "nav-item active"
-                : "nav-item"
-            }
-            onClick={() => setPanel(null)}
+            className="icon-button sound-button"
+            onClick={() => setSound(!sound)}
+            aria-label={sound ? "Desactiva el so" : "Activa el so"}
+            aria-pressed={sound}
           >
-            <Icon name="compass" size={19} />
-            L’excursió
+            <Icon name={sound ? "volume" : "mute"} size={19} />
           </button>
           <button
-            className={`nav-item ${panel === "collection" ? "active" : ""}`}
-            onClick={() => setPanel("collection")}
+            className="help-button"
+            aria-label="Com s’hi juga"
+            onClick={() => setPanel("guide")}
           >
-            <Icon name="basket" size={19} />
-            El boletari
-          </button>
-          <button
-            className={`nav-item ${panel === "stats" ? "active" : ""}`}
-            onClick={() => setPanel("stats")}
-          >
-            <Icon name="chart" size={19} />
-            El meu quadern
-          </button>
-        </nav>
-        <button
-          className="help-button"
-          aria-label="Com s’hi juga"
-          onClick={() => setPanel("guide")}
-        >
-          <Icon name="help" size={19} />
-          <span>Com s’hi juga</span>
-        </button>
-      </header>
-      <main>
-        <div className="game-heading">
-          <div className="section-heading">
-            <span className="mini-icon">
-              <Icon name="compass" />
-            </span>
-            <div>
-              <h1>La teva excursió</h1>
-              <p>Un racó de bosc ple de possibilitats.</p>
-            </div>
-          </div>
-          <button
-            className="text-button"
-            onClick={() =>
-              run.used > 0 && run.phase !== "ended"
-                ? setPanel("restart")
-                : restart()
-            }
-          >
-            Nova excursió <Icon name="arrow" size={17} />
+            <Icon name="help" size={19} />
+            <span>Com s’hi juga</span>
           </button>
         </div>
+      </header>
+      <main>
         <PwaUpdate
           saveProgress={() => {
             if (!state.ready) return false;
@@ -302,8 +258,35 @@ export default function Game() {
             perdrà quan tanquis la pàgina.
           </p>
         )}
-        <div className="game-layout">
-          <section className="board-card" aria-label="Tauler de joc">
+        <section
+          id="screen-forest"
+          role="tabpanel"
+          aria-labelledby="tab-forest"
+          hidden={screen !== "forest"}
+          className="forest-screen"
+        >
+          <div className="game-heading">
+            <div className="section-heading">
+              <span className="mini-icon">
+                <Icon name="compass" />
+              </span>
+              <div>
+                <h1>La teva excursió</h1>
+                <p>Un racó de bosc ple de possibilitats.</p>
+              </div>
+            </div>
+            <button
+              className="text-button"
+              onClick={() =>
+                run.used > 0 && run.phase !== "ended"
+                  ? setPanel("restart")
+                  : restart()
+              }
+            >
+              Nova excursió <Icon name="arrow" size={17} />
+            </button>
+          </div>
+          <section className="board-stage" aria-label="Tauler de joc">
             <div className="board-top">
               <div className="level-label">
                 <span className="level-number">
@@ -570,12 +553,7 @@ export default function Game() {
                   </p>
                 </div>
               )}
-            <div
-              className="board-message"
-              ref={feedbackRef}
-              role="status"
-              aria-live="polite"
-            >
+            <div className="board-message" role="status" aria-live="polite">
               <Icon name={tool === "rake" ? "rake" : "leaf"} size={17} />
               <span>
                 {tool === "rake"
@@ -599,7 +577,21 @@ export default function Game() {
               </button>
             )}
           </section>
-          <aside className="sidebar">
+        </section>
+        <section
+          id="screen-basket"
+          role="tabpanel"
+          aria-labelledby="tab-basket"
+          hidden={screen !== "basket"}
+          tabIndex={0}
+          className="info-screen basket-screen"
+        >
+          <div className="screen-heading">
+            <div className="eyebrow">AQUESTA EXCURSIÓ · NIVELL {run.level}</div>
+            <h2>El teu cistell</h2>
+            <p>Les troballes i els talents que t’acompanyen.</p>
+          </div>
+          <div className="basket-content">
             <section className="basket-card">
               <div className="card-heading">
                 <h3>
@@ -686,78 +678,132 @@ export default function Game() {
                 </span>
               </div>
             </section>
-            <section className="tip-card">
-              <span className="tip-doodle">
-                <Icon name="help" size={29} />
-              </span>
-              <div>
-                <h4>El bosc et dona pistes</h4>
-                <p>
-                  Els números indiquen quantes de les 8 caselles del voltant
-                  tenen bolets. Observa, dedueix… i cull!
-                </p>
-                <button
-                  className="text-button"
-                  onClick={() => setPanel("guide")}
-                >
-                  Aprèn a jugar <Icon name="arrow" size={15} />
-                </button>
+          </div>
+        </section>
+        <section
+          id="screen-collection"
+          role="tabpanel"
+          aria-labelledby="tab-collection"
+          hidden={screen !== "collection"}
+          tabIndex={0}
+          className="info-screen"
+        >
+          <span className="modal-symbol">
+            <Icon name="basket" size={33} />
+          </span>
+          <div className="eyebrow">EL BOLETARI</div>
+          <h2>Coneix els teus tresors.</h2>
+          <p>Totes les espècies del joc i les teves troballes acumulades.</p>
+          <div className="collection-grid">
+            {speciesList.map((species) => (
+              <article key={species}>
+                <span className={`collection-art ${species}`}>
+                  <MushroomArt color={SPECIES[species].color} size={66} />
+                </span>
+                <div>
+                  <h3>
+                    {SPECIES[species].name}
+                    <span>{SPECIES[species].points} punts</span>
+                  </h3>
+                  <p>{SPECIES[species].description}</p>
+                  <small>{totals.mushrooms[species]} recollits en total</small>
+                </div>
+              </article>
+            ))}
+          </div>
+          <p className="modal-note">
+            Un boletari de ficció per jugar. No és una guia per identificar
+            bolets reals.
+          </p>
+        </section>
+        <section
+          id="screen-stats"
+          role="tabpanel"
+          aria-labelledby="tab-stats"
+          hidden={screen !== "stats"}
+          tabIndex={0}
+          className="info-screen"
+        >
+          <span className="modal-symbol">
+            <Icon name="chart" size={33} />
+          </span>
+          <div className="eyebrow">EL MEU QUADERN</div>
+          <h2>Cada excursió deixa petjada.</h2>
+          <p>
+            Les teves estadístiques en aquest dispositiu, inclosa l’excursió
+            actual.
+          </p>
+          <div className="modal-stats">
+            {[
+              [totalCollected(totals.mushrooms), "bolets recollits"],
+              [totals.levels, "nivells superats"],
+              [totals.turns, "torns utilitzats"],
+              [totals.runs, "excursions acabades"],
+              [totals.score, "punts acumulats"],
+              [totals.bestLevel, "millor nivell superat"],
+            ].map(([value, label]) => (
+              <div key={label}>
+                <strong>{value}</strong>
+                <span>{label}</span>
               </div>
-            </section>
-          </aside>
-        </div>
-        <section className="journey-strip">
-          <div className="journey-intro">
-            <span className="journal-icon">
-              <Icon name="chart" size={25} />
-            </span>
-            <div>
-              <h3>Petites passes, moltes històries.</h3>
-              <p>El teu quadern creix amb cada excursió.</p>
-            </div>
+            ))}
           </div>
-          <div className="journey-stat">
-            <strong>{totalCollected(totals.mushrooms)}</strong>
-            <span>bolets en total</span>
-          </div>
-          <div className="journey-stat">
-            <strong>{totals.levels}</strong>
-            <span>nivells superats</span>
-          </div>
-          <div className="journey-stat">
-            <strong>{totals.runs}</strong>
-            <span>excursions acabades</span>
-          </div>
+          <p className="modal-note">
+            Aquí només hi guardem records. Les estadístiques no donen avantatges
+            dins del joc. El progrés es desa en aquest navegador.
+          </p>
           <button
-            className="icon-button"
-            aria-label="Obre el meu quadern"
-            onClick={() => setPanel("stats")}
+            className="secondary-button install-button"
+            onClick={() => setPanel("install")}
           >
-            <Icon name="arrow" />
+            <Icon name="download" size={18} /> Instal·la el joc
           </button>
         </section>
       </main>
-      <footer>
-        <span>
-          <MushroomArt size={19} /> Fet per perdre’s una estona al bosc.
-        </span>
-        <span className="footer-actions">
+      <nav
+        className="bottom-nav"
+        role="tablist"
+        aria-label="Navegació principal"
+      >
+        {screens.map(({ id, label, icon }) => (
           <button
-            className="sound-button"
-            onClick={() => setSound(!sound)}
-            aria-label={sound ? "Desactiva el so" : "Activa el so"}
+            key={id}
+            id={`tab-${id}`}
+            role="tab"
+            aria-selected={screen === id}
+            aria-controls={`screen-${id}`}
+            tabIndex={screen === id ? 0 : -1}
+            className={`nav-item ${screen === id ? "active" : ""}`}
+            onClick={() => setScreen(id)}
+            onKeyDown={(event) => {
+              const index = screens.findIndex((item) => item.id === id);
+              const next =
+                event.key === "ArrowRight"
+                  ? (index + 1) % screens.length
+                  : event.key === "ArrowLeft"
+                    ? (index + screens.length - 1) % screens.length
+                    : event.key === "Home"
+                      ? 0
+                      : event.key === "End"
+                        ? screens.length - 1
+                        : null;
+              if (next === null) return;
+              event.preventDefault();
+              const target =
+                event.currentTarget.parentElement?.querySelectorAll("button")[
+                  next
+                ];
+              target?.focus();
+              target?.click();
+            }}
           >
-            <Icon name={sound ? "volume" : "mute"} size={17} />
-            <span>So {sound ? "activat" : "desactivat"}</span>
+            <span className="nav-icon">
+              <Icon name={icon} size={23} />
+            </span>
+            <span>{label}</span>
           </button>
-          <span className="footer-dot">·</span>
-          <button onClick={() => setPanel("install")}>
-            <Icon name="download" size={16} />
-            Instal·la el joc
-          </button>
-          <span className="language">CAT</span>
-        </span>
-      </footer>
+        ))}
+      </nav>
       {state.welcome && (
         <Dialog
           title="Benvingut a Buscabolets"
@@ -853,73 +899,6 @@ export default function Game() {
               <button className="primary-button" onClick={() => setPanel(null)}>
                 Cap al bosc <Icon name="arrow" size={18} />
               </button>
-            </>
-          )}
-          {panel === "collection" && (
-            <>
-              <span className="modal-symbol">
-                <Icon name="basket" size={33} />
-              </span>
-              <div className="eyebrow">EL BOLETARI</div>
-              <h2>Coneix els teus tresors.</h2>
-              <p>
-                Totes les espècies del joc i les teves troballes acumulades.
-              </p>
-              <div className="collection-grid">
-                {speciesList.map((species) => (
-                  <article key={species}>
-                    <span className={`collection-art ${species}`}>
-                      <MushroomArt color={SPECIES[species].color} size={66} />
-                    </span>
-                    <div>
-                      <h3>
-                        {SPECIES[species].name}
-                        <span>{SPECIES[species].points} punts</span>
-                      </h3>
-                      <p>{SPECIES[species].description}</p>
-                      <small>
-                        {totals.mushrooms[species]} recollits en total
-                      </small>
-                    </div>
-                  </article>
-                ))}
-              </div>
-              <p className="modal-note">
-                Un boletari de ficció per jugar. No és una guia per identificar
-                bolets reals.
-              </p>
-            </>
-          )}
-          {panel === "stats" && (
-            <>
-              <span className="modal-symbol">
-                <Icon name="chart" size={33} />
-              </span>
-              <div className="eyebrow">EL MEU QUADERN</div>
-              <h2>Cada excursió deixa petjada.</h2>
-              <p>
-                Les teves estadístiques en aquest dispositiu, inclosa l’excursió
-                actual.
-              </p>
-              <div className="modal-stats">
-                {[
-                  [totalCollected(totals.mushrooms), "bolets recollits"],
-                  [totals.levels, "nivells superats"],
-                  [totals.turns, "torns utilitzats"],
-                  [totals.runs, "excursions acabades"],
-                  [totals.score, "punts acumulats"],
-                  [totals.bestLevel, "millor nivell superat"],
-                ].map(([value, label]) => (
-                  <div key={label}>
-                    <strong>{value}</strong>
-                    <span>{label}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="modal-note">
-                Aquí només hi guardem records. Les estadístiques no donen
-                avantatges dins del joc. El progrés es desa en aquest navegador.
-              </p>
             </>
           )}
           {panel === "install" && (

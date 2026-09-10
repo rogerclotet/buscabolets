@@ -89,10 +89,8 @@ test("Catalan game, tools, persistence, and accessible dialogs", async ({
     "aria-valuenow",
     String(initialSave().run.budget),
   );
-  await page
-    .getByRole("button", { name: "El meu quadern", exact: true })
-    .click();
-  await expect(page.getByRole("dialog")).toContainText(
+  await page.getByRole("tab", { name: "El meu quadern", exact: true }).click();
+  await expect(page.getByRole("tabpanel")).toContainText(
     "Les estadístiques no donen avantatges",
   );
   expect(errors).toEqual([]);
@@ -179,8 +177,8 @@ test("production PWA installs its cache and reloads offline", async ({
   await expect(
     page.getByRole("button", { name: "A1, marcada", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "El boletari", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText(
+  await page.getByRole("tab", { name: "El boletari", exact: true }).click();
+  await expect(page.getByRole("tabpanel")).toContainText(
     "Coneix els teus tresors.",
   );
 });
@@ -233,7 +231,7 @@ for (const power of [1, 2, 3]) {
         "Cada toc costa 1 torn",
       );
       await page
-        .locator(".board-card")
+        .locator(".board-stage")
         .screenshot({ path: testInfo.outputPath(`remaining-${taps}.png`) });
       await cep.click();
     }
@@ -253,3 +251,92 @@ for (const power of [1, 2, 3]) {
     ).toBe(true);
   });
 }
+
+for (const viewport of [
+  { width: 320, height: 568 },
+  { width: 390, height: 844 },
+  { width: 430, height: 932 },
+  { width: 768, height: 1024 },
+  { width: 1280, height: 800 },
+  { width: 844, height: 390 },
+]) {
+  test(`board and controls fit the ${viewport.width}×${viewport.height} viewport`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    const save = initialSave();
+    save.run.mushrooms = [
+      { species: "cep", tiles: [44], damage: [0] },
+      { species: "rovello", tiles: [99], damage: [0] },
+    ];
+    await seed(page, save);
+    await page.locator(".tile").nth(44).click();
+    await expect(page.locator(".picking-legend")).toBeVisible();
+    for (const locator of [
+      page.locator(".board-grid"),
+      page.getByRole("button", { name: "Marca", exact: true }),
+      page.getByRole("button", { name: /Rasclet del bosc/ }),
+      page.getByRole("button", { name: /Olfacte boletaire/ }),
+      page.getByRole("status"),
+      page.getByRole("tablist"),
+      page.getByRole("button", { name: "Nova excursió", exact: true }),
+    ]) {
+      await expect(locator).toBeInViewport({ ratio: 1 });
+    }
+    const board = await page.locator(".board-grid").boundingBox();
+    expect(board).not.toBeNull();
+    if (viewport.width <= 600) {
+      expect(board?.x).toBe(0);
+      expect(board?.width).toBe(viewport.width);
+    }
+    expect(
+      await page.evaluate(() => ({
+        width: document.documentElement.scrollWidth,
+        height: document.documentElement.scrollHeight,
+      })),
+    ).toEqual(viewport);
+    await page.getByRole("tab", { name: "El cistell", exact: true }).click();
+    await expect(page.getByRole("tabpanel")).toContainText("Talents passius");
+    await expect(page.getByRole("tablist")).toBeInViewport({ ratio: 1 });
+    await page.getByRole("tab", { name: "L’excursió", exact: true }).click();
+    await expect(page.locator(".tile").nth(44)).toHaveClass(/needs-picking/);
+    await page.locator(".tile").nth(44).click();
+    await page.locator(".tile").nth(44).click();
+    await page.locator(".tile").nth(99).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Tanca", exact: true })
+      .click();
+    await expect(page.locator(".phase-button")).toBeInViewport({ ratio: 1 });
+    await expect(page.locator(".board-grid")).toBeInViewport({ ratio: 1 });
+    await expect(page.getByRole("tablist")).toBeInViewport({ ratio: 1 });
+  });
+}
+
+test("tabs support keyboard navigation and retain the selected tool and board", async ({
+  page,
+}) => {
+  await seed(page, initialSave());
+  await page.getByRole("button", { name: "Marca", exact: true }).click();
+  await page.locator(".tile").first().click();
+  const forest = page.getByRole("tab", { name: "L’excursió", exact: true });
+  await forest.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(
+    page.getByRole("tab", { name: "El cistell", exact: true }),
+  ).toBeFocused();
+  await expect(page.getByRole("tabpanel")).toHaveAccessibleName("El cistell");
+  await page.keyboard.press("End");
+  await expect(page.getByRole("tabpanel")).toHaveAccessibleName(
+    "El meu quadern",
+  );
+  await page.keyboard.press("Home");
+  await expect(forest).toBeFocused();
+  await expect(forest).toHaveAttribute("aria-selected", "true");
+  await expect(
+    page.getByRole("button", { name: "Marca", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".tile").first()).toHaveAccessibleName(
+    "A1, marcada",
+  );
+});
