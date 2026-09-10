@@ -21,6 +21,7 @@ import {
   type Tool,
 } from "@/lib/game";
 import { ForestArt, Icon, MushroomArt, Sprout } from "./art";
+import { PwaUpdate } from "./pwa-update";
 
 const STORAGE_KEY = "buscabolets-v1";
 const WELCOME_KEY = "buscabolets-welcome-v1";
@@ -156,13 +157,6 @@ export default function Game() {
         welcome: true,
       });
     }
-    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
-      void navigator.serviceWorker
-        .register("/sw.js", { updateViaCache: "none" })
-        .catch(() => {
-          /* The online game works without a service worker. */
-        });
-    }
   }, []);
   useEffect(() => {
     if (!state.ready || !state.storageOk) return;
@@ -280,6 +274,18 @@ export default function Game() {
             Nova excursió <Icon name="arrow" size={17} />
           </button>
         </div>
+        <PwaUpdate
+          saveProgress={() => {
+            if (!state.ready) return false;
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(state.save));
+              return true;
+            } catch {
+              dispatch({ kind: "storage-error" });
+              return false;
+            }
+          }}
+        />
         {!state.storageOk && (
           <p className="storage-warning" role="status">
             No podem desar el progrés en aquest navegador. Pots jugar, però es
