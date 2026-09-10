@@ -4,7 +4,12 @@ const ASSETS = __ASSETS__;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
-  // Let an existing run keep its current version until all its tabs close.
+  // Keep the current release until the player accepts an update or closes all tabs.
+});
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    event.waitUntil(self.skipWaiting());
+  }
 });
 self.addEventListener("activate", (event) => {
   event.waitUntil(

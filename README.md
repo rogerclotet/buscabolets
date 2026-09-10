@@ -141,7 +141,9 @@ The current run and lifetime statistics are saved together in localStorage after
 
 The production build generates `public/sw.js` with a versioned list of the exact HTML, scripts, styles, fonts and icons for that release. The first online visit caches the app. After installation completes, the game can reload and play offline. Fonts are bundled locally; no third-party requests are needed during play.
 
-The service worker is registered only in production, on HTTPS or localhost. A new release waits until existing game tabs close before activation, keeping a run's HTML and assets on the same version. Close all game tabs and reopen online to activate a waiting update. The save format is independent of the asset cache.
+The service worker is registered only in production, on HTTPS or localhost. The game checks for updates when opened, brought back to the foreground, or reconnected. Once a new release finishes downloading, an “Actualitza ara” action appears. It saves the current run, activates the waiting release, and reloads open game tabs when the new worker takes control. If saving fails, the update stays pending. Downloaded updates can be applied offline. Without accepting the update, the current release stays active until all game tabs close. The save format is independent of the asset cache.
+
+Clients running a version from before this update action was introduced must close all game tabs and the installed PWA once, then reopen online to load a version with the action.
 
 To test the production PWA locally:
 
